@@ -1,2 +1,5 @@
 .idea
 MNIST-data
+IIIT5K
+*.tar*
+__pycache__
