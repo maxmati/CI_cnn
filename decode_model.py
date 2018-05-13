@@ -1,6 +1,60 @@
 import tensorflow as tf
 import numpy as np
 from network_ops import generate_sth_layer
+import localization_net as ln
+import transformers as trans
+
+
+def detection_network(inputs, num_labels):
+    num_timesteps = 1
+    theta = ln.get_network(inputs, num_timesteps)
+    theta_flat = tf.reshape(theta, [-1, 6])
+
+    inputs_expanded = tf.reshape(inputs, [-1, 1, inputs.shape[1], inputs.shape[2], inputs.shape[3]])
+    inputs_broadcasted = tf.concat([inputs_expanded for _ in range(0, num_timesteps)], 1)
+    inputs_broadcasted_flat = tf.reshape(inputs_broadcasted, [-1, inputs.shape[1], inputs.shape[2], inputs.shape[3]])
+
+    img = trans.spatial_transformer_network(inputs_broadcasted_flat, theta_flat, (75, 50))
+
+    # img = tf.image.resize_image_with_crop_or_pad(
+    #     inputs_broadcasted_flat,
+    #     200,
+    #     200
+    # )
+
+    conv1 = tf.layers.conv2d(
+        inputs=img,
+        filters=32,
+        kernel_size=[3, 3],
+        padding="same",
+        activation=tf.nn.relu
+    )
+
+    pool1 = tf.layers.max_pooling2d(inputs=conv1, pool_size=[2, 2], strides=2)
+
+    layer = pool1
+    for _ in range(0, 4):
+       layer = generate_sth_layer(layer)
+
+    pool2 = tf.layers.max_pooling2d(inputs=layer, pool_size=[2, 2], strides=2)
+
+    # dense layer
+    pool2_flat = tf.reshape(pool2, [-1, pool2.shape[1] * pool2.shape[2] * pool2.shape[3]])
+    dense = tf.layers.dense(inputs=pool2_flat, units=1024, activation=tf.nn.relu)
+
+    classifiers = []
+    for i in range(num_labels):
+        softmax = tf.layers.dense(inputs=dense, units=24) #134
+        softmax = tf.reshape(softmax, [-1, 1, 24])
+        classifiers.append(softmax)
+
+    logits = tf.concat(classifiers, 1)
+
+    logits = tf.layers.dense(inputs=logits, units=37)
+
+    # logits layer
+    # logits = tf.layers.dense(inputs=dropout, units=10)
+    return logits
 
 
 def model_fn(features, labels, mode):
@@ -8,7 +62,7 @@ def model_fn(features, labels, mode):
 
     conv1 = tf.layers.conv2d(
         inputs=input_layer,
-        filters=64,
+        filters=32,
         kernel_size=[5, 5],
         padding="same",
         activation=tf.nn.relu
