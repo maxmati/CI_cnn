@@ -2,6 +2,7 @@ import input
 import scipy.io as sio
 import numpy as np
 import tensorflow as tf
+import pickle
 import matplotlib
 
 import decode_model
@@ -17,17 +18,17 @@ def char_to_label(char):
     return 26 + ord(char) - ord('0') + 1
 
 
-def load_data():
-    mat = sio.loadmat('IIIT5K/traindata.mat')['traindata'][0]
+def load_data_mat(name):
+    mat = sio.loadmat('IIIT5K/' + name + '.mat')[name][0]
     count = mat.shape[0]
     # count = 100
-    labels = np.zeros([count, 22], np.int32)
+    labels = np.zeros([count, 6], np.int32)
     images = []
     for i in range(0, count):
         word = mat[i]['GroundTruth'][0]
         image = mat[i]['ImgName'][0]
         images.append('IIIT5K/' + image)
-        for j in range(0, min(len(word), 22)):
+        for j in range(0, min(len(word), 6)):
             labels[i, j] = char_to_label(word[j])
     return images, labels
 
@@ -36,20 +37,20 @@ def prepare_images(images):
     decoded_images = []
     for img in images:
         # with open(img, 'r') as content_file:
-        decoded_images.append(cv2.imread(img, 0))
+        decoded_images.append(cv2.resize(cv2.imread(img, 0), (1000, 230)))
 
     # padded = tf.image.pad_to_bounding_box(decoded_images, 0, 0, 2900, 710)
 
-    return tf.keras.utils.normalize(np.asarray(decoded_images, np.float32))  # TODO: maybe scale to 0-1
+    return np.asarray(decoded_images, np.float32) / 255
 
 
 # 2900x710
 
 
 def model_fn(features, labels, mode):
-    input_layer = tf.reshape(features["x"], [-1, 1000, 230, 1])
+    input_layer = tf.reshape(features["x"], [-1, 230, 1000, 1])
 
-    logits = decode_model.detection_network(input_layer, 22)
+    logits = decode_model.detection_network(input_layer, 6)
 
     predictions = {
         # generate predictions (for predict and eval mode)
@@ -81,19 +82,38 @@ def model_fn(features, labels, mode):
         mode=mode, loss=loss, eval_metric_ops=eval_metric_ops)
 
 
+def convert_if_needed(name):
+    if input.check_if_exists('IIIT5K/' + name + '.pickle'):
+        return
+    images, labels = load_data_mat(name)
+
+    with open('IIIT5K/' + name + '.pickle', 'wb') as f:
+        pickle.dump((images, labels), f)
+
+
+def load_data(name):
+    with open('IIIT5K/' + name + '.pickle', 'rb') as f:
+        return pickle.load(f)
+
+
 def main():
     tf.logging.set_verbosity('DEBUG')
     input.extract_if_needed('IIIT5K', DOWNLOAD_URL)
+    convert_if_needed('traindata')
+    convert_if_needed('testdata')
 
     # with tf.device('/cpu:0'):
-    images, labels = load_data()
+    images, labels = load_data('traindata')
     images = prepare_images(images)
     assert not np.any(np.isnan(images))
     assert not np.any(np.isnan(labels))
-    # labels = tf.convert_to_tensor(labels)
-    # labels = tf.reshape(labels, [-1, 22])
 
-    # config = tf.ConfigProto()
+    eval_images, eval_labels = load_data('testdata')
+    eval_images = prepare_images(eval_images)
+    assert not np.any(np.isnan(eval_images))
+    assert not np.any(np.isnan(eval_images))
+
+    config = tf.ConfigProto()
     # config.gpu_options.per_process_gpu_memory_fraction = 0.4
     # config.gpu_options.allow_growth = True
 
@@ -110,23 +130,21 @@ def main():
         shuffle=True)
 
     eval_input_fn = tf.estimator.inputs.numpy_input_fn(
-        x={"x": images},
-        y=labels,
+        x={"x": eval_images},
+        y=eval_labels,
         batch_size=32,
-        num_epochs=1,
-        shuffle=True)
+        shuffle=False)
+    # num_epochs=1,
+    # shuffle=True)
 
     classifier = tf.estimator.Estimator(
-        # config=tf.estimator.RunConfig(session_config=config),
+        config=tf.estimator.RunConfig(session_config=config),
         model_fn=model_fn)
 
-    # classifier.predict(train_input_fn)
-    #
-    for _ in range(0, 10):
+    for _ in range(0, 100):
         classifier.train(
             input_fn=train_input_fn,
-            steps=1000)
-
+            steps=2000)
 
         eval_results = classifier.evaluate(input_fn=eval_input_fn)
         print(eval_results)

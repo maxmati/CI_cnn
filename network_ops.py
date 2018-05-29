@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-def generate_sth_layer(inputs):
+def generate_resnet_layer(inputs):
     conv1 = tf.layers.conv2d(
         inputs=inputs,
         filters=32,

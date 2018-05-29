@@ -1,11 +1,13 @@
 import tensorflow as tf
 import numpy as np
-from network_ops import generate_sth_layer
+from network_ops import generate_resnet_layer
 import localization_net as ln
 import transformers as trans
 
 
 def detection_network(inputs, num_labels):
+    tf.summary.image('input', inputs)
+
     num_timesteps = 1
     theta = ln.get_network(inputs, num_timesteps)
     theta_flat = tf.reshape(theta, [-1, 6])
@@ -14,13 +16,9 @@ def detection_network(inputs, num_labels):
     inputs_broadcasted = tf.concat([inputs_expanded for _ in range(0, num_timesteps)], 1)
     inputs_broadcasted_flat = tf.reshape(inputs_broadcasted, [-1, inputs.shape[1], inputs.shape[2], inputs.shape[3]])
 
-    img = trans.spatial_transformer_network(inputs_broadcasted_flat, theta_flat, (75, 50))
+    img = trans.spatial_transformer_network(inputs_broadcasted_flat, theta_flat, (50, 100))
 
-    # img = tf.image.resize_image_with_crop_or_pad(
-    #     inputs_broadcasted_flat,
-    #     200,
-    #     200
-    # )
+    tf.summary.image('cropped', img)
 
     conv1 = tf.layers.conv2d(
         inputs=img,
@@ -34,7 +32,7 @@ def detection_network(inputs, num_labels):
 
     layer = pool1
     for _ in range(0, 4):
-       layer = generate_sth_layer(layer)
+       layer = generate_resnet_layer(layer)
 
     pool2 = tf.layers.max_pooling2d(inputs=layer, pool_size=[2, 2], strides=2)
 
@@ -72,7 +70,7 @@ def model_fn(features, labels, mode):
 
     layer = pool1
     for _ in range(0, 4):
-        layer = generate_sth_layer(layer)
+        layer = generate_resnet_layer(layer)
 
     pool2 = tf.layers.max_pooling2d(inputs=layer, pool_size=[2, 2], strides=2)
 

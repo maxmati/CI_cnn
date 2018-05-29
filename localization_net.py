@@ -1,5 +1,5 @@
 import tensorflow as tf
-from network_ops import generate_sth_layer
+from network_ops import generate_resnet_layer
 
 
 def get_network(data, num_timesteps):
@@ -16,7 +16,7 @@ def get_network(data, num_timesteps):
 
     layer = pool1
     for _ in range(0, 4):
-        layer = generate_sth_layer(layer)
+        layer = generate_resnet_layer(layer)
 
     pool2 = tf.layers.max_pooling2d(inputs=layer, pool_size=[2, 2], strides=2)
 
