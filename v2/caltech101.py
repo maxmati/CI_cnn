@@ -19,7 +19,8 @@ def main():
     for cat in catagories:
         image_files = os.listdir(os.path.join(data_path, cat))
         for f in image_files:
-            train_data.append(cv2.resize(cv2.imread(os.path.join(data_path, cat, f), 0), (200, 200)))
+            img = cv2.resize(cv2.imread(os.path.join(data_path, cat, f), 0), (200, 200))
+            train_data.append(img - np.mean(img))
             train_labels.append(categories_map[cat])
 
     train_data = np.asarray(train_data, np.float32) / 255
@@ -32,7 +33,8 @@ def main():
     for cat in catagories:
         image_files = os.listdir(os.path.join(data_path, cat))
         for f in image_files:
-            eval_data.append(cv2.resize(cv2.imread(os.path.join(data_path, cat, f), 0), (200, 200)))
+            img = cv2.resize(cv2.imread(os.path.join(data_path, cat, f), 0), (200, 200))
+            eval_data.append(img - np.mean(img))
             eval_labels.append(categories_map[cat])
 
     eval_data = np.asarray(eval_data, np.float32) / 255
