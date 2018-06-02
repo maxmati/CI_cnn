@@ -19,7 +19,7 @@ def main():
     for cat in catagories:
         image_files = os.listdir(os.path.join(data_path, cat))
         for f in image_files:
-            img = cv2.resize(cv2.imread(os.path.join(data_path, cat, f), 0), (200, 200))
+            img = cv2.resize(cv2.imread(os.path.join(data_path, cat, f), 0), (50, 50))
             train_data.append(img - np.mean(img))
             train_labels.append(categories_map[cat])
 
@@ -33,7 +33,7 @@ def main():
     for cat in catagories:
         image_files = os.listdir(os.path.join(data_path, cat))
         for f in image_files:
-            img = cv2.resize(cv2.imread(os.path.join(data_path, cat, f), 0), (200, 200))
+            img = cv2.resize(cv2.imread(os.path.join(data_path, cat, f), 0), (50, 50))
             eval_data.append(img - np.mean(img))
             eval_labels.append(categories_map[cat])
 
@@ -41,7 +41,7 @@ def main():
     eval_labels = np.asarray(eval_labels)
 
     mnist_classifier = tf.estimator.Estimator(
-        model_fn=model_fn)
+        model_fn=model_fn((50, 50, 3), 102))
 
     # Set up logging for predictions
     tensors_to_log = {"probabilities": "softmax_tensor"}

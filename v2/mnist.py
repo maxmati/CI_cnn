@@ -15,7 +15,8 @@ def main():
     config.gpu_options.allow_growth = True
     mnist_classifier = tf.estimator.Estimator(
         # config=tf.estimator.RunConfig(session_config=config),
-        model_fn=model_fn)
+        model_fn=model_fn((28, 28, 1), 10, 0.01, 3),
+    )
 
     # Set up logging for predictions
     tensors_to_log = {"probabilities": "softmax_tensor"}
@@ -25,14 +26,14 @@ def main():
     train_input_fn = tf.estimator.inputs.numpy_input_fn(
         x={"x": train_data},
         y=train_labels,
-        batch_size=128,
+        batch_size=32,
         num_epochs=None,
         shuffle=True)
 
     for _ in range(0, 10):
         mnist_classifier.train(
             input_fn=train_input_fn,
-            steps=5000)
+            steps=1000)
 
         # Evaluate the model and print results
         eval_input_fn = tf.estimator.inputs.numpy_input_fn(
