@@ -34,7 +34,7 @@ def generate_resnet_layer(inputs, filters, conv_add=False):
                 strides=(2, 2)
             )
 
-    return tf.add(inputs, conv2)
+        return tf.add(inputs, conv2)
 
 
 def model_fn(sizes, labels_count, learning_rate, n):
@@ -80,7 +80,7 @@ def model_fn(sizes, labels_count, learning_rate, n):
         # pool2_flat = tf.reshape(pool2, [-1, 7 * 7 * 64])
         pool2_flat = tf.reshape(pool5, [-1, int(sizes[0]/8) * int(sizes[1]/8) * 64])
         dense = tf.layers.dense(inputs=pool2_flat, units=100, activation=tf.nn.relu)
-        # dropout = dense
+        # dropout = dense"
         dropout = tf.layers.dropout(
             inputs=dense, rate=0.4, training=mode == tf.estimator.ModeKeys.TRAIN)
 

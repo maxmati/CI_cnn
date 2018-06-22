@@ -32,7 +32,7 @@ def main(n):
     eval_data = np.asarray(eval_data, np.float32) / 255
     mnist_classifier = tf.estimator.Estimator(
         model_fn=model_fn((32, 32, 3), 10, 0.01, n),
-        model_dir='/home/maxmati/cifar_b/model_' + str(n)
+        model_dir='/home/maxmati/final2/cifar/model_' + str(n)
     )
 
     train_input_fn = tf.estimator.inputs.numpy_input_fn(
@@ -43,7 +43,7 @@ def main(n):
         queue_capacity=50000,
         shuffle=True)
 
-    for _ in range(0, 32):
+    for _ in range(0, 20):
         mnist_classifier.train(
             input_fn=train_input_fn,
             steps=1000)

@@ -16,6 +16,7 @@ def main():
     mnist_classifier = tf.estimator.Estimator(
         # config=tf.estimator.RunConfig(session_config=config),
         model_fn=model_fn((28, 28, 1), 10, 0.01, 3),
+        model_dir="/home/maxmati/final2/mnist"
     )
 
     # Set up logging for predictions
@@ -30,7 +31,7 @@ def main():
         num_epochs=None,
         shuffle=True)
 
-    for _ in range(0, 10):
+    for _ in range(0, 20):
         mnist_classifier.train(
             input_fn=train_input_fn,
             steps=1000)
